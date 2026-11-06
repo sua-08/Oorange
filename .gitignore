@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next
+/out
+
+# testing
+/coverage
+
+# local secrets
+.env*
+!.env.example
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+next-env.d.ts
