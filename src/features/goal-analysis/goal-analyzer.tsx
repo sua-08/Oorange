@@ -15,6 +15,8 @@ import { canHarvest } from "@/domain/harvest/harvest";
 import { HarvestReady } from "@/features/harvest/harvest-ready";
 import { HarvestResult } from "@/features/harvest/harvest-result";
 import { suggestGoalAction } from "./suggest-action-client";
+import { AccountPanel } from "@/features/account/account-panel";
+import { useCloudAccount } from "@/features/account/use-cloud-account";
 
 export function GoalAnalyzer() {
   const [goal, setGoal] = useState("");
@@ -40,6 +42,7 @@ export function GoalAnalyzer() {
   const [storageReady, setStorageReady] = useState(false);
   const [storageBusy, setStorageBusy] = useState(false);
   const [storageError, setStorageError] = useState("");
+  const account = useCloudAccount(setSavedGoals);
   const selectedGoal = savedGoals.find((item) => item.id === selectedGoalId);
   const harvestReady = selectedGoal ? canHarvest(selectedGoal) : false;
   const restoreSeed = startSession.restore;
@@ -71,6 +74,7 @@ export function GoalAnalyzer() {
     try {
       await indexedDbGoalRepository.put(record);
       setSavedGoals((previous) => [record, ...previous.filter((item) => item.id !== record.id)]);
+      void account.syncAfterWrite();
       setStorageError("");
       return true;
     } catch (error) {
@@ -280,6 +284,7 @@ export function GoalAnalyzer() {
       const harvested = await indexedDbGoalRepository.harvest(selectedGoal.id, Date.now(), Math.random(), crypto.randomUUID());
       if (harvested) {
         setSavedGoals((previous) => [harvested, ...previous.filter((item) => item.id !== harvested.id)]);
+        void account.syncAfterWrite();
         setStorageError("");
         showSavedGoal(harvested);
       } else {
@@ -608,6 +613,16 @@ export function GoalAnalyzer() {
           onFreeze={freezeGoal}
           onThaw={thawGoal}
           onRefreshRecommendation={refreshRecommendation}
+          cloudConnected={account.connected && !account.error}
+        />
+        <AccountPanel
+          hasSeed={savedGoals.some((item) => !!item.seed)}
+          configured={account.configured}
+          connected={account.connected}
+          syncing={account.syncing}
+          error={account.error}
+          onConnect={() => void account.connect()}
+          onSync={() => void account.syncAfterWrite()}
         />
       </section>
 

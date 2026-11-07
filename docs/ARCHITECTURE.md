@@ -14,7 +14,7 @@
 | Form/schema | React Hook Form + Zod | 적은 입력 리렌더와 공유 가능한 런타임 검증 |
 | AI | OpenAI Responses API + Structured Outputs | 서버 전용 키와 스키마 기반 결과 |
 | Guest data | IndexedDB + Dexie | 구조화된 브라우저 저장과 버전 마이그레이션 |
-| Cloud | Supabase Auth + Postgres + RLS | 승인됨. 익명 사용자에서 Google OAuth 계정 연결, 사용자별 데이터 격리 |
+| Cloud | Supabase Auth + Postgres + RLS | 게스트는 로컬 저장을 유지하고, 첫 씨앗 이후 선택적으로 Google OAuth를 연결해 사용자별 기록을 병합 |
 | Tests | Vitest + Testing Library + Playwright | 규칙, UI, 전체 Core Loop 검증 |
 | Hosting | Vercel + Supabase | 초기 운영 부담 최소화 |
 

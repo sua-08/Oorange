@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { buildEncyclopedia } from "@/domain/encyclopedia/encyclopedia";
 import type { SavedGoal } from "@/domain/goals/saved-goal";
 import { indexedDbGoalRepository } from "@/infrastructure/db/indexeddb/goal-repository";
+import { useCloudAccount } from "@/features/account/use-cloud-account";
 
 export function EncyclopediaView() {
   const [goals, setGoals] = useState<SavedGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const account = useCloudAccount(setGoals);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +43,7 @@ export function EncyclopediaView() {
         {!loading && <p className="encyclopedia-count" aria-label="도감 현황">만난 품종 {unlocked} / {entries.length} · 수확한 오렌지 {totalHarvests}개</p>}
       </section>
       {loadError && <p className="encyclopedia-error" role="alert">{loadError}</p>}
+      {account.error && <p className="encyclopedia-error" role="alert">{account.error}</p>}
       {loading ? <p className="encyclopedia-loading" role="status">도감을 열고 있어요…</p> : (
         <section className="encyclopedia-grid" aria-label="오렌지 품종">
           {entries.map((entry) => (

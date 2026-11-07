@@ -14,6 +14,7 @@ type Props = {
   onFreeze: (goal: SavedGoal) => void;
   onThaw: (goal: SavedGoal) => void;
   onRefreshRecommendation: (goal: SavedGoal) => void;
+  cloudConnected?: boolean;
 };
 
 function ActiveGoalAction({ goal, busy, refreshing, error, onRefresh }: {
@@ -43,7 +44,7 @@ function ActiveGoalAction({ goal, busy, refreshing, error, onRefresh }: {
   );
 }
 
-export function GoalVault({ goals, selectedId, busy, suggestingGoalId, suggestionError, onSelect, onFreeze, onThaw, onRefreshRecommendation }: Props) {
+export function GoalVault({ goals, selectedId, busy, suggestingGoalId, suggestionError, onSelect, onFreeze, onThaw, onRefreshRecommendation, cloudConnected = false }: Props) {
   const active = goals.filter((goal) => goal.status === "active" || goal.status === "awaiting_start");
   const frozen = goals.filter((goal) => goal.status === "frozen");
   const harvested = goals.filter((goal) => goal.status === "harvested" && goal.harvest);
@@ -105,7 +106,7 @@ export function GoalVault({ goals, selectedId, busy, suggestingGoalId, suggestio
         </ul>}
       </div>
       <Link className="encyclopedia-link" href="/encyclopedia">나의 오렌지 도감 보기 →</Link>
-      <p className="vault-storage-note">지금은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 복구할 수 없어요.</p>
+      <p className="vault-storage-note">{cloudConnected ? "이 브라우저와 연결된 계정에 기록을 보관해요." : "지금은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 복구할 수 없어요."}</p>
     </aside>
   );
 }

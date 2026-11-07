@@ -326,6 +326,12 @@ h1 em { color: var(--orange-dark); font-style: normal; }
 .freezer { margin-top: 20px; padding-top: 19px; border-top: 1px solid #dfd2bf; }
 .freezer p { margin: 6px 0 13px; }
 .vault-storage-note { margin: 21px 0 0; padding-top: 16px; border-top: 1px solid #dfd2bf; font-size: 11px; }
+.account-panel { grid-column: 1 / -1; padding: 16px; border: 1px solid #e6d4b8; border-radius: 16px; background: #fff9ec; }
+.account-panel h3 { margin: 0 0 6px; font-size: 15px; }
+.account-panel p { margin: 0 0 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.account-panel button { padding: 8px 14px; border: 0; border-radius: 10px; background: var(--orange); color: white; font-weight: 750; cursor: pointer; }
+.account-panel button:disabled { opacity: .6; cursor: default; }
+.account-panel .account-error { margin-top: 10px; color: #a65023; }
 
 .workspace.is-harvest-ready, .workspace.is-harvested { grid-template-columns: minmax(0, 1fr) minmax(245px, .36fr); align-items: start; }
 .workspace.is-harvest-ready .intro-column, .workspace.is-harvested .intro-column { display: none; }
