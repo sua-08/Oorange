@@ -14,6 +14,7 @@ import type { Progress } from "@/domain/progress/progress";
 import { canHarvest } from "@/domain/harvest/harvest";
 import { HarvestReady } from "@/features/harvest/harvest-ready";
 import { HarvestResult } from "@/features/harvest/harvest-result";
+import { suggestGoalAction } from "./suggest-action-client";
 
 export function GoalAnalyzer() {
   const [goal, setGoal] = useState("");
@@ -29,6 +30,9 @@ export function GoalAnalyzer() {
   const requestRevision = useRef(0);
   const requestController = useRef<AbortController | null>(null);
   const harvestLock = useRef(false);
+  const suggestionController = useRef<AbortController | null>(null);
+  const [suggestingGoalId, setSuggestingGoalId] = useState<string | null>(null);
+  const [suggestionError, setSuggestionError] = useState<{ goalId: string; message: string } | null>(null);
   const startSession = useStartSession();
   const { startDeadline, deferred, seed, secondsLeft } = startSession;
   const [savedGoals, setSavedGoals] = useState<SavedGoal[]>([]);
@@ -108,6 +112,32 @@ export function GoalAnalyzer() {
     if (storageBusy || !canThawGoal(savedGoals, record.id)) return;
     const restored = { ...record, status: record.seed ? "active" as const : "awaiting_start" as const, updatedAt: Date.now() };
     if (await saveGoal(restored)) showSavedGoal(restored);
+  }
+
+  async function refreshRecommendation(record: SavedGoal) {
+    if (record.status !== "active" || !record.seed || suggestionController.current || storageBusy) return;
+    const controller = new AbortController();
+    suggestionController.current = controller;
+    setSuggestingGoalId(record.id);
+    setSuggestionError(null);
+    const timeout = window.setTimeout(() => controller.abort(), 16_000);
+    try {
+      const action = await suggestGoalAction({
+        originalGoal: record.analysis.originalGoal,
+        context: record.context,
+        previousAction: record.recommendation?.action ?? record.seed.starterAction,
+      }, controller.signal);
+      await saveGoal({ ...record, recommendation: { action, updatedAt: Date.now() }, updatedAt: Date.now() });
+    } catch (error) {
+      setSuggestionError({
+        goalId: record.id,
+        message: controller.signal.aborted ? "추천 응답이 늦어지고 있어요. 다시 눌러주세요." : error instanceof Error ? error.message : "지금은 새 행동을 추천하기 어려워요.",
+      });
+    } finally {
+      window.clearTimeout(timeout);
+      suggestionController.current = null;
+      setSuggestingGoalId(null);
+    }
   }
 
   function closeResult() {
@@ -217,12 +247,18 @@ export function GoalAnalyzer() {
     const acquired = startSession.confirm(analysis.originalGoal, currentMeasurement.currentAction!);
     if (acquired && selectedGoal) {
       setStarterCelebrated(false);
-      await saveGoal({ ...selectedGoal, seed: acquired, status: "active", updatedAt: Date.now() });
+      await saveGoal({
+        ...selectedGoal,
+        seed: acquired,
+        recommendation: { action: acquired.starterAction, updatedAt: acquired.acquiredAt },
+        status: "active",
+        updatedAt: Date.now(),
+      });
     }
   }
 
   async function saveProgress(next: Progress) {
-    if (!selectedGoal?.seed || selectedGoal.status !== "active" || storageBusy) return;
+    if (!selectedGoal?.seed || selectedGoal.status !== "active" || storageBusy || suggestionController.current) return;
     const saved = await saveGoal({
       ...selectedGoal,
       progress: next,
@@ -237,7 +273,7 @@ export function GoalAnalyzer() {
   }
 
   async function harvestSelectedGoal() {
-    if (!selectedGoal || !canHarvest(selectedGoal) || harvestLock.current) return;
+    if (!selectedGoal || !canHarvest(selectedGoal) || harvestLock.current || suggestionController.current) return;
     harvestLock.current = true;
     setStorageBusy(true);
     try {
@@ -327,7 +363,7 @@ export function GoalAnalyzer() {
           ) : harvestReady && selectedGoal ? (
             <HarvestReady
               originalGoal={selectedGoal.analysis.originalGoal}
-              busy={storageBusy}
+              busy={storageBusy || suggestingGoalId !== null}
               error={storageError}
               onHarvest={harvestSelectedGoal}
               correctionPanel={<ProgressPanel
@@ -335,7 +371,7 @@ export function GoalAnalyzer() {
                 progress={selectedGoal.progress ?? null}
                 recommendedUnit={selectedGoal.analysis.progressUnitLabel}
                 recommendationReason={selectedGoal.analysis.progressUnitReason}
-                saving={storageBusy}
+                saving={storageBusy || suggestingGoalId !== null}
                 onSave={saveProgress}
               />}
             />
@@ -439,7 +475,7 @@ export function GoalAnalyzer() {
                         progress={selectedGoal.progress ?? null}
                         recommendedUnit={analysis.progressUnitLabel}
                         recommendationReason={analysis.progressUnitReason}
-                        saving={storageBusy}
+                        saving={storageBusy || suggestingGoalId !== null}
                         onSave={saveProgress}
                       />}
                       </>
@@ -565,10 +601,13 @@ export function GoalAnalyzer() {
         <GoalVault
           goals={savedGoals}
           selectedId={selectedGoalId}
-          busy={storageBusy || pending !== null}
+          busy={storageBusy || pending !== null || suggestingGoalId !== null}
+          suggestingGoalId={suggestingGoalId}
+          suggestionError={suggestionError}
           onSelect={showSavedGoal}
           onFreeze={freezeGoal}
           onThaw={thawGoal}
+          onRefreshRecommendation={refreshRecommendation}
         />
       </section>
 

@@ -13,6 +13,10 @@ export const SavedGoalSchema = z.object({
     starterAction: z.string().min(1),
     acquiredAt: z.number().int().nonnegative(),
   }).nullable(),
+  recommendation: z.object({
+    action: z.string().trim().min(1).max(200),
+    updatedAt: z.number().int().nonnegative(),
+  }).strict().optional(),
   progress: ProgressSchema.nullable().optional(),
   progressHistory: z.array(z.object({
     previous: ProgressSchema.nullable(),

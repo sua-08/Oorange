@@ -524,6 +524,16 @@ h1 em { color: var(--orange-dark); }
 .starter-finish-button { margin-top: 10px; padding: 7px 12px; border: 1px solid #88ad81; border-radius: 999px; color: #245b38; background: #fffdf4; font-size: 12px; font-weight: 800; }
 .starter-finish-button:hover { background: #e7f4e4; }
 .starter-celebration { margin-top: 11px !important; color: #245b38 !important; font-weight: 750; }
+.vault-recommendation { display: grid; gap: 8px; margin-top: 9px; padding: 10px; border: 1px solid #e8d4b4; border-radius: 12px; background: #fff5e2; }
+.vault-recommendation summary { cursor: pointer; color: #5d4b31; font-size: 11px; font-weight: 800; }
+.vault-recommendation details p { margin: 8px 0; color: var(--ink); font-size: 12px; line-height: 1.5; }
+.vault-recommendation label { font-size: 10px; font-weight: 750; }
+.vault-recommendation input { width: 100%; min-width: 0; min-height: 35px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 11px; }
+.vault-recommendation button { width: fit-content; border: 0; background: transparent; color: var(--orange-dark); font-size: 11px; font-weight: 750; cursor: pointer; }
+.vault-recommendation button:disabled { opacity: .55; cursor: default; }
+.vault-recommendation .vault-copy-action { padding: 0; }
+.vault-recommendation .vault-refresh-action { padding: 5px 0 0; text-decoration: underline; text-underline-offset: 3px; }
+.vault-recommendation .vault-recommendation-error { margin: 0; color: #a65023; font-size: 11px; }
 .progress-track span { background: var(--orange); }
 .progress-actions button { background: var(--orange); }
 .progress-actions button:nth-child(2) { color: var(--orange-dark); background: #ffead1; }

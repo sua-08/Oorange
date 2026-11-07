@@ -244,6 +244,42 @@ describe("local goal vault", () => {
 });
 
 describe("progress after earning a seed", () => {
+  it("keeps a recommendation across reload and refreshes it only on request", async () => {
+    const fetchMock = vi.fn(async (url: string, options: RequestInit) => {
+      if (url === "/api/ai/suggest-action") return Response.json({ action: "강의 목록 열기" });
+      return Response.json(mockAnalysis(JSON.parse(options.body as string) as AnalysisRequest));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const view = render(<GoalAnalyzer />);
+    await reachSeedSize("강의 5개 듣기");
+    fireEvent.click(screen.getByRole("button", { name: /1분 안에 시작하기/ }));
+    fireEvent.click(screen.getByRole("button", { name: "시작했어요!" }));
+    await waitFor(() => expect(repositoryState.goals[0].recommendation?.action).toBe(repositoryState.goals[0].seed?.starterAction));
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/ai/suggest-action")).toHaveLength(0);
+    view.unmount();
+    render(<GoalAnalyzer />);
+    expect(await screen.findByRole("button", { name: "다른 행동 추천받기" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다른 행동 추천받기" }));
+    await waitFor(() => expect(repositoryState.goals[0].recommendation?.action).toBe("강의 목록 열기"));
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/ai/suggest-action")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /이 행동으로 시작/ }));
+    expect(screen.getByLabelText("지금 시작할 작은 행동")).toHaveValue("강의 목록 열기");
+    expect(repositoryState.goals[0].progress?.currentAmount ?? 0).toBe(0);
+  });
+
+  it("keeps the saved recommendation when a refresh fails", async () => {
+    render(<GoalAnalyzer />);
+    await reachSeedSize("강의 5개 듣기");
+    fireEvent.click(screen.getByRole("button", { name: /1분 안에 시작하기/ }));
+    fireEvent.click(screen.getByRole("button", { name: "시작했어요!" }));
+    await waitFor(() => expect(repositoryState.goals[0].recommendation?.action).toBeTruthy());
+    const previous = repositoryState.goals[0].recommendation?.action;
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "잠시 뒤 다시 시도해주세요." }, { status: 503 })));
+    fireEvent.click(screen.getByRole("button", { name: "다른 행동 추천받기" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("잠시 뒤 다시 시도해주세요.");
+    expect(repositoryState.goals[0].recommendation?.action).toBe(previous);
+  });
+
   it("celebrates finishing the first action without changing final-goal progress", async () => {
     render(<GoalAnalyzer />);
     await reachSeedSize("강의 5개 듣기");

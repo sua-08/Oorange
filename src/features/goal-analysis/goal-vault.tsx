@@ -2,17 +2,48 @@ import type { SavedGoal } from "@/domain/goals/saved-goal";
 import { growthStage, progressPercent } from "@/domain/progress/progress";
 import { varietyLabels } from "@/domain/harvest/harvest";
 import Link from "next/link";
+import { useState } from "react";
 
 type Props = {
   goals: SavedGoal[];
   selectedId: string | null;
   busy: boolean;
+  suggestingGoalId: string | null;
+  suggestionError: { goalId: string; message: string } | null;
   onSelect: (goal: SavedGoal) => void;
   onFreeze: (goal: SavedGoal) => void;
   onThaw: (goal: SavedGoal) => void;
+  onRefreshRecommendation: (goal: SavedGoal) => void;
 };
 
-export function GoalVault({ goals, selectedId, busy, onSelect, onFreeze, onThaw }: Props) {
+function ActiveGoalAction({ goal, busy, refreshing, error, onRefresh }: {
+  goal: SavedGoal;
+  busy: boolean;
+  refreshing: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const recommendation = goal.recommendation?.action ?? goal.seed!.starterAction;
+
+  return (
+    <div className="vault-recommendation">
+      <details open>
+        <summary>💬 추천 행동</summary>
+        <p>{recommendation}</p>
+        <button type="button" className="vault-copy-action" onClick={() => setDraft(recommendation)}>☝ 이 행동으로 시작</button>
+      </details>
+      <label htmlFor={`vault-action-${goal.id}`}>지금 시작할 작은 행동</label>
+      <input id={`vault-action-${goal.id}`} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="추천을 고르거나 직접 적어보세요" />
+      <button type="button" className="vault-refresh-action" disabled={busy} onClick={onRefresh}>
+        {refreshing ? "새 행동을 생각하고 있어요…" : "다른 행동 추천받기"}
+      </button>
+      {error && <p className="vault-recommendation-error" role="alert">{error}</p>}
+    </div>
+  );
+}
+
+export function GoalVault({ goals, selectedId, busy, suggestingGoalId, suggestionError, onSelect, onFreeze, onThaw, onRefreshRecommendation }: Props) {
   const active = goals.filter((goal) => goal.status === "active" || goal.status === "awaiting_start");
   const frozen = goals.filter((goal) => goal.status === "frozen");
   const harvested = goals.filter((goal) => goal.status === "harvested" && goal.harvest);
@@ -30,6 +61,13 @@ export function GoalVault({ goals, selectedId, busy, onSelect, onFreeze, onThaw 
               <strong>{goal.analysis.originalGoal}</strong>
               <span>{goal.progress ? `${growthStage(goal.progress) === "fruit_ready" ? "열매 준비" : "성장 중"} · ${progressPercent(goal.progress)}%` : goal.seed ? "씨앗 획득" : goal.measurements.length ? "첫 행동 준비 중" : "목표 줄이기 전"}</span>
               {goal.measurements.at(-1)?.currentAction && <small>첫 행동 · {goal.measurements.at(-1)?.currentAction}</small>}
+              {goal.seed && <ActiveGoalAction
+                goal={goal}
+                busy={busy}
+                refreshing={suggestingGoalId === goal.id}
+                error={suggestionError?.goalId === goal.id ? suggestionError.message : null}
+                onRefresh={() => onRefreshRecommendation(goal)}
+              />}
               <div className="vault-actions">
                 <button type="button" disabled={busy || goal.id === selectedId} onClick={() => onSelect(goal)}>이어하기</button>
                 <button type="button" disabled={busy} onClick={() => onFreeze(goal)}>동결창고에 보관</button>
